@@ -1,0 +1,92 @@
+---
+title: "Machine Learning Project - Report"
+author: "DM"
+date: "Sunday, April 26, 2015"
+output: html_document
+---
+
+## Summary
+
+In this document I describe how I built my model, how I used cross validation, what I think the expected out of sample error is, and why I made the choices I did. I will also use my prediction model to predict 20 different test cases. 
+
+##Data
+
+The training data for this project are available here: 
+
+*https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv*
+
+The test data are available here: 
+
+*https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv*
+
+The data for this project come from this source: *http://groupware.les.inf.puc-rio.br/har*. They have been very generous in allowing their data to be used for the assignment in course Practical Machine Learning, what is purpose of  this document . 
+
+##Goal
+
+Goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: *http://groupware.les.inf.puc-rio.br/har* (see the section on the Weight Lifting Exercise Dataset). 
+
+##Building Model
+
+First, I read required  packages and data. Then I investigated data, using head,summary, str  function. I decided to  define new preprocesed data, and decided not to use near zero  varability data  what reduced 60  variables from data. Then I recognized that  have many NA data what reduced additional 41 varibles. Additionaly, I decided that variables for Users and timestaps should  not be important so I decided not to  used them in my model. After reducing  dataset I had full  data for 52 varablesto  use  to  predict varable classe.
+
+
+```{r,echo=FALSE}
+library(lattice);library(ggplot2);library(caret);
+library(kernlab);library(randomForest);
+pml.training <- read.csv("./data/pml-training.csv")
+pml.testing <- read.csv("./data/pml-testing.csv")
+        
+```
+
+```{r,eval=FALSE}
+head(pml.training);
+summary(pml.training);
+str(pml.training);
+```
+
+```{r}
+nsv<-nearZeroVar(pml.training,saveMetrics=TRUE);
+pml.Preprocesed1<-pml.training[, -which(nsv$nzv==TRUE)]
+reduced2=names(pml.Preprocesed1)[c(11:26,40,50:53,57:62,64:73,86:88,90)]
+pml.Preprocesed2<-pml.Preprocesed1[,-c(11:26,40,50:53,57:62,64:73,86:88,90)]
+pml.Preprocesed3<-pml.Preprocesed2[,-c(1,2,3,4,5,6)]
+names=names(pml.Preprocesed3)
+```
+
+##Cross validation
+
+Since random  forest is very popular and generaly accurate model  for  prediction, I decided to  use it to  build my model. Cross validation is done in model  constucton. Model  parameters give the accurancy prediction,  which in my case in arround 90% (out of sample error, there I would  say, is around 10%). Confusion matrix is also given.
+
+
+```{r}
+set.seed(1)
+proba<-sample(c(1:19622),1000,replace=FALSE)
+modFit<-train(classe~., data=pml.Preprocesed3[proba,],method="rf");
+modFit
+```
+
+Confusion Matrix
+
+```{r}
+confusionMatrix(pml.Preprocesed3$classe,predict(modFit,pml.Preprocesed3[,-53]))
+```
+
+## Prediction for test data
+
+Correspondigly to  developed Model, and investigated accurancy, my predictions for test id problems are: 
+1:B, 2:A, 3:A, 4:A, 5:A, 
+6:E, 7:D, 8:D, 9:A, 10:A, 
+11:B, 12:C, 13:B, 14:A, 15:E, 
+16:E, 17:A, 18:B, 19:A, 20:B.
+
+I estimate that I have accurancy around 90%, i.e. 2 or 3 id problems are most likely false  classified.
+
+```{r}
+pml.test<-pml.testing[,which(names(pml.testing)%in%names(pml.Preprocesed3))];
+pred<-predict(modFit,pml.test);
+pred
+```
+
+
+
+
